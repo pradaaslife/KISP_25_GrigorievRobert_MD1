@@ -74,7 +74,6 @@ const styles = StyleSheet.create({
 
 ## 2. Create your first app (Создание первого приложения)
 
-### Теория
 Для инициализации проекта используется утилита `create-expo-app`. Стандартный шаблон включает:
 - пакет `expo` и Expo CLI;
 - готовую табовую навигацию на Expo Router;
