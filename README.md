@@ -29,96 +29,455 @@
 **Сервис EAS Workflows:** Используется для настройки автоматического CI/CD цикла, позволяя собирать и выпускать релизы напрямую через GitHub.
 
 
-# Конспект Epro tutorial
+# Конспект Expo tutorial
 
 ## 1. Introduction (Введение)
 
-**Expo** — это экосистема поверх React Native, упрощающая создание, сборку и развертывание кроссплатформенных приложений (Android, iOS, Web) из единой кодовой базы.
+Цель туториала — познакомиться с Expo SDK и построить приложение, которое:
 
-**Expo Go** — мобильное приложение-песочница для мгновенного тестирования кода на реальном устройстве через QR-код без локальной настройки Android Studio/Xcode.
+- создаётся из стандартного шаблона с включённым TypeScript;
+- использует **Expo Router** для навигации (стек + нижние табы);
+- строит макет экрана с помощью **Flexbox**;
+- позволяет выбрать изображение из галереи устройства;
+- показывает модальное окно выбора стикера (`<Modal>`, `<FlatList>`);
+- обрабатывает жесты (тап, перетаскивание);
+- делает скриншот и сохраняет его на устройство;
+- учитывает различия между Android, iOS и Web;
+- настраивает статус-бар, иконку и заставку (splash screen).
+
+Прохождение занимает около двух часов, материал разбит на 9 глав.
+
+Пример стартового кода ("Hello World"):
+
+```tsx
+import { StyleSheet, Text, View } from 'react-native';
+
+export default function Index() {
+  return (
+    <View style={styles.container}>
+      <Text>Hello world!</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
+```
+
+---
 
 ## 2. Create your first app (Создание первого приложения)
 
-**Инициализация:** Проект создается командой *npx create-expo-app@latest*.
+### Теория
+Для инициализации проекта используется утилита `create-expo-app`. Стандартный шаблон включает:
+- пакет `expo` и Expo CLI;
+- готовую табовую навигацию на Expo Router;
+- автоматическую настройку под Android/iOS/Web;
+- предустановленный TypeScript.
 
-**Запуск сервера:** Команда *npx expo start* поднимает Metro Bundler и выводит QR-код в терминал.
+Стили в React Native задаются не CSS, а JS-объектами через `StyleSheet.create()`, но многие свойства похожи на CSS (flex, colors и т.д.).
 
-**Архитектура:** По умолчанию современный шаблон создает структуру папки *src/app* для файлового роутинга.
+### Основные шаги
+1. Создать проект:
+```bash
+npx create-expo-app@latest StickerSmash
+cd StickerSmash
+```
+2. Скачать и распаковать assets (изображения) в `assets/images`.
+3. Выполнить `npm run reset-project` — удаляет шаблонный код, оставляя `index.tsx` и `_layout.tsx`.
+4. Запустить сервер разработки:
+```bash
+npx expo start
+```
+5. Отредактировать `src/app/index.tsx`:
+
+```tsx
+import { Text, View, StyleSheet } from 'react-native';
+
+export default function Index() {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.text}>Home screen</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#25292e', alignItems: 'center', justifyContent: 'center' },
+  text: { color: '#fff' },
+});
+```
+
+---
 
 ## 3. Add navigation (Добавление навигации)
 
-**Expo Router:** Файловая система определяет экраны (файл *index.tsx* равен пути */*).
+### Теория
+**Expo Router** — файловая система маршрутизации: каждый файл в директории `app` становится экраном в приложении и страницей в вебе.
 
-**Stack Navigator:** Организует навигацию по принципу стопки карт (*Stack*). Каждый новый экран открывается поверх предыдущего свайпом или анимацией.
+Ключевые понятия:
+- **app directory** — содержит только маршруты и layout-файлы;
+- **Root layout** (`_layout.tsx`) — общий UI (шапки, табы) для всех маршрутов;
+- имя файла `index.tsx` соответствует родительскому маршруту (`/`);
+- `+not-found.tsx` — экран для несуществующих маршрутов (аналог 404).
 
-**Tab Navigator:** Реализует нижнюю панель вкладок. Для группировки папка оборачивается в круглые скобки (*tabs*), чтобы исключить её название из адресной строки URL.
+### Стек-навигатор
+Компонент `<Stack>` создаёт переходы между экранами (анимация сверху на Android, справа на iOS).
 
-**Компонент** *Link*: Используется для перехода: *Link href="/about">Перейти</Link*.
+```tsx
+import { Stack } from 'expo-router';
 
-**404:** Файл *+not-found.tsx* перехватывает любые несуществующие маршруты.
+export default function RootLayout() {
+  return (
+    <Stack>
+      <Stack.Screen name="index" options={{ title: 'Home' }} />
+      <Stack.Screen name="about" options={{ title: 'About' }} />
+    </Stack>
+  );
+}
+```
+
+### Переход между экранами
+Компонент `<Link>` из `expo-router` рендерит `<Text>` со ссылкой `href`:
+
+```tsx
+import { Link } from 'expo-router';
+
+<Link href="/about" style={{ color: '#fff' }}>Go to About screen</Link>
+```
+
+### Таб-навигатор
+Группа `(tabs)` создаёт нижнюю панель вкладок:
+
+```tsx
+import { Tabs } from 'expo-router';
+
+export default function TabLayout() {
+  return (
+    <Tabs screenOptions={{ tabBarActiveTintColor: '#ffd33d' }}>
+      <Tabs.Screen name="index" options={{ title: 'Home' }} />
+      <Tabs.Screen name="about" options={{ title: 'About' }} />
+    </Tabs>
+  );
+}
+```
+
+Иконки табов подключаются из библиотеки `@expo/vector-icons` (например, `Ionicons`) через параметр `tabBarIcon`.
+
+---
 
 ## 4. Build a screen (Создание экрана)
 
-**Базовые UI-компоненты:**
-*View* — контейнер-блок (аналог *div* в веб-разработке).
-*Text* — текстовый компонент (любая строка обязана быть внутри него).
-*Pressable* или *TouchableOpacity* — компоненты-обертки для обработки нажатий.
+### Теория
+Экран разбивается на составные части: изображение по центру и две кнопки внизу. Для показа изображений используется кроссплатформенный компонент `<Image>` из библиотеки `expo-image` — он принимает либо локальный файл (`require(...)`), либо `uri` из сети.
 
-**Стилизация:** Используется встроенный *StyleSheet.create()*. Стили основаны на модели **Flexbox**, где направление по умолчанию выставлено как *flexDirection:* *'column'* (вертикально).
+Для интерактивных элементов рекомендуется компонент **`<Pressable>`** — он гибче, чем `<Button>`, и поддерживает разные события нажатия.
 
-## 5. Use an image picker (Использование Image Picker)
+### Пример: показ изображения
 
-**Библиотека:** *expo-image-picker*.
+```tsx
+import { Image } from 'expo-image';
 
-**Доступ к галерее:** Требует асинхронного запроса разрешений у операционной системы: *typescriptconst [status, requestPermission] = ImagePicker.useMediaLibraryPermissions();*
+const PlaceholderImage = require('@/assets/images/background-image.png');
 
-**Выбор фото:** Метод *launchImageLibraryAsync()* открывает системную галерею и возвращает объект с URI выбранного изображения для последующего отображения в компоненте *Image*.
+<Image source={PlaceholderImage} style={{ width: 320, height: 440, borderRadius: 18 }} />
+```
+
+### Пример: кнопка на Pressable
+
+```tsx
+import { Pressable, Text, View } from 'react-native';
+
+export default function Button({ label }: { label: string }) {
+  return (
+    <View>
+      <Pressable onPress={() => alert('You pressed a button.')}>
+        <Text>{label}</Text>
+      </Pressable>
+    </View>
+  );
+}
+```
+
+Компоненты рекомендуется выносить в отдельные файлы (директория `src/components`), а не хранить всё в `app`, так как `app` предназначена только для маршрутов.
+
+Для стилизации «основной» кнопки используется проп `theme="primary"` и инлайн-стили, которые перекрывают стили из `StyleSheet.create()`, плюс иконка из `@expo/vector-icons` (например `FontAwesome`).
+
+---
+
+## 5. Use an image picker (Выбор изображения)
+
+### Теория
+Для выбора изображения из галереи используется библиотека **`expo-image-picker`** — она открывает системный интерфейс выбора фото/видео.
+
+Установка:
+```bash
+npx expo install expo-image-picker
+```
+
+### Пример
+
+```tsx
+import * as ImagePicker from 'expo-image-picker';
+import { useState } from 'react';
+
+const [selectedImage, setSelectedImage] = useState<string | undefined>(undefined);
+
+const pickImageAsync = async () => {
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsEditing: true,
+    quality: 1,
+  });
+
+  if (!result.canceled) {
+    setSelectedImage(result.assets[0].uri);
+  } else {
+    alert('You did not select any image.');
+  }
+};
+```
+
+Метод `launchImageLibraryAsync()` возвращает объект с массивом `assets`, в котором лежит `uri` выбранного файла. Если `selectedImage` задан, он используется вместо изображения-заглушки — через тернарный оператор внутри компонента `ImageViewer`.
+
+---
 
 ## 6. Create a modal (Создание модального окна)
 
-**Компонент *Modal*:** Стандартный компонент React Native для всплывающих окон поверх основного интерфейса.
+### Теория
+Компонент React Native **`<Modal>`** показывает контент поверх остального приложения — обычно для привлечения внимания или выбора опции. В туториале создаётся модальное окно выбора эмодзи-стикера.
 
-**Управление:** Состояние видимости контролируется через логический стейт (например, *const [isVisible, setIsVisible] = useState(false))*.
+Ключевые пропсы `<Modal>`:
+- `visible` — управляет видимостью;
+- `transparent` — занимает ли модалка весь экран;
+- `animationType` — способ появления (например, `"slide"`).
 
-**Свойства:** Атрибут *animationType="slide"* задает анимацию появления снизу, а *transparent={true}* позволяет делать полупрозрачный размытый или затемненный фон.
+### Пример модального окна
+
+```tsx
+import { Modal, View, Text, Pressable } from 'react-native';
+
+export default function EmojiPicker({ isVisible, children, onClose }) {
+  return (
+    <Modal animationType="slide" transparent={true} visible={isVisible}>
+      <View>
+        <Text>Choose a sticker</Text>
+        <Pressable onPress={onClose}>
+          <Text>Закрыть</Text>
+        </Pressable>
+        {children}
+      </View>
+    </Modal>
+  );
+}
+```
+
+### Список эмодзи
+Для горизонтального списка используется **`<FlatList>`** — компонент для эффективного рендеринга списков. Ключевые пропсы: `data` (массив), `renderItem` (функция отрисовки элемента), `horizontal` (горизонтальная прокрутка).
+
+```tsx
+<FlatList
+  horizontal
+  data={emoji}
+  renderItem={({ item }) => (
+    <Pressable onPress={() => onSelect(item)}>
+      <Image source={item} style={{ width: 100, height: 100 }} />
+    </Pressable>
+  )}
+/>
+```
+
+Выбранный эмодзи хранится в состоянии (`useState`) и накладывается на изображение через отдельный компонент `EmojiSticker`.
+
+---
 
 ## 7. Add gestures (Добавление жестов)
 
-**Инструментарий:** *react-native-gesture-handler* и *react-native-reanimated*.
+### Теория
+Для обработки жестов используется библиотека **React Native Gesture Handler**, а для анимаций — **Reanimated**. Приложение должно быть обёрнуто в `<GestureHandlerRootView>`.
 
-**Связка компонентов:** Для работы жестов все приложение необходимо обернуть в *GestureHandlerRootView*.
+Два жеста в туториале:
+- **двойной тап** — увеличивает/уменьшает размер стикера;
+- **pan (перетаскивание)** — двигает стикер по экрану.
 
-**Реализация:** Компоненты вроде *PanGestureHandler* (для перетаскивания) или *TapGestureHandler* (для тапов) отслеживают координаты пальца, а Reanimated плавно обновляет положение объекта в обход основного потока JavaScript.
+`useSharedValue()` создаёт «общее» значение, которое можно менять и на основе которого строится анимация. `useAnimatedStyle()` формирует стиль, реагирующий на изменение shared-значений.
 
-## 8. Take a screenshot (Создание скриншота)
+### Пример: жест двойного тапа
 
-**Библиотека:** *react-native-view-shot*.
+```tsx
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
-**Принцип действия:** Компонент захватывает переданную область интерфейса (через *ref*) и конвертирует её в локальную ссылку-изображение (URI).
+const scaleImage = useSharedValue(imageSize);
 
-**Сохранение в галерею:** Полученный URI передается в модуль *expo-media-library* с помощью функции *MediaLibrary.saveToLibraryAsync(localUri)*.
+const doubleTap = Gesture.Tap()
+  .numberOfTaps(2)
+  .onStart(() => {
+    scaleImage.value = scaleImage.value !== imageSize * 2
+      ? scaleImage.value * 2
+      : Math.round(scaleImage.value / 2);
+  });
 
-## 9. Handle platform differences (Обработка межплатформенных различий)
+const imageStyle = useAnimatedStyle(() => ({
+  width: withSpring(scaleImage.value),
+  height: withSpring(scaleImage.value),
+}));
+```
 
-**Модуль** *Platform:* Позволяет писать разветвления в коде в зависимости от ОС: *typescriptconst padding = Platform.OS === 'ios' ? 20 : 10;*
+### Пример: жест перетаскивания (pan)
 
-**Расширения файлов:** Metro автоматически выберет нужный файл, если дать ему специфичное расширение: *Button.ios.tsx*, *Button.android.tsx* или *Button.web.tsx.*
+```tsx
+const translateX = useSharedValue(0);
+const translateY = useSharedValue(0);
 
-## 10. Configure status bar, splash screen and app icon (Настройка системных элементов)
+const drag = Gesture.Pan().onChange(event => {
+  translateX.value += event.changeX;
+  translateY.value += event.changeY;
+});
 
-**Status Bar:** Компонент *StatusBar style="light" /* управляет цветом системных иконок (время, батарея) в верхней части экрана.
+const containerStyle = useAnimatedStyle(() => ({
+  transform: [{ translateX: translateX.value }, { translateY: translateY.value }],
+}));
+```
 
-**Конфигурация** (*app.json*): Глобальный файл настроек проекта, где задаются:
-*icon* — квадратная иконка приложения (1024x1024px).
-*splash* — параметры экрана загрузки (фоновый цвет и логотип).
-*adaptiveIcon* — специфические настройки адаптивных иконок для Android.
+Оба жеста оборачивают элемент в `<GestureDetector gesture={...}>`.
 
-## 11. Learning resources (Ресурсы для обучения)
+---
 
-**Дальнейшие шаги:**
-Изучение **EAS (Expo Application Services)** для облачной сборки бинарников (*.apk*, *.aab*, *.ipa*) без наличия macOS.
-Работа с нативными модулями через конфигурационные плагины (Config Plugins).
-Интеграция с базами данных (SQLite, Firebase, Supabase).
+## 8. Take a screenshot (Сохранение скриншота)
+
+### Теория
+Для захвата области экрана используется сторонняя библиотека **`react-native-view-shot`**, а для сохранения в галерею — **`expo-media-library`**.
+
+Установка:
+```bash
+npx expo install react-native-view-shot expo-media-library
+```
+
+Перед сохранением нужно запросить разрешение на доступ к медиатеке через хук `useMediaLibraryPermissions()`.
+
+### Пример
+
+```tsx
+import { captureRef } from 'react-native-view-shot';
+import * as MediaLibrary from 'expo-media-library';
+import { useRef } from 'react';
+
+const imageRef = useRef<View>(null);
+
+const onSaveImageAsync = async () => {
+  try {
+    const localUri = await captureRef(imageRef, { height: 440, quality: 1 });
+    await MediaLibrary.saveToLibraryAsync(localUri);
+    alert('Saved!');
+  } catch (e) {
+    console.log(e);
+  }
+};
+```
+
+Элемент, который нужно захватить, оборачивается в `<View ref={imageRef} collapsable={false}>` — свойство `collapsable={false}` не даёт React Native «схлопнуть» View при оптимизации, что нужно для корректного скриншота.
+
+---
+
+## 9. Handle platform differences (Обработка различий платформ)
+
+### Теория
+Не все библиотеки работают одинаково на Android, iOS и Web. Например, `react-native-view-shot` не работает в браузере — вместо неё для веба используется библиотека **`dom-to-image`**, которая превращает DOM-узел в изображение (SVG/PNG/JPEG).
+
+Определить текущую платформу помогает модуль **`Platform`** из `react-native` — свойство `Platform.OS` возвращает `'ios' | 'android' | 'web'`.
+
+### Пример
+
+```tsx
+import { Platform } from 'react-native';
+import domtoimage from 'dom-to-image';
+
+const onSaveImageAsync = async () => {
+  if (Platform.OS !== 'web') {
+    // логика для Android/iOS через captureRef()
+  } else {
+    const dataUrl = await domtoimage.toJpeg(imageRef.current, { quality: 0.95 });
+    const link = document.createElement('a');
+    link.download = 'sticker-smash.jpeg';
+    link.href = dataUrl;
+    link.click();
+  }
+};
+```
+
+Для TypeScript-проекта, использующего `dom-to-image` (нет встроенных типов), создаётся файл `types.d.ts`:
+
+```ts
+declare module 'dom-to-image';
+```
+
+---
+
+## 10. Configure status bar, splash screen and app icon (Настройка внешнего вида)
+
+### Теория
+Перед публикацией приложения настраиваются три элемента оформления:
+
+1. **Статус-бар** — библиотека `expo-status-bar` (входит в шаблон по умолчанию) даёт компонент `<StatusBar>` для настройки стиля (светлый/тёмный текст).
+2. **Иконка приложения** — файл `assets/images/icon.png` (1024×1024 px), путь к которому указан в `app.json` в поле `"icon"`.
+3. **Заставка (splash screen)** — настраивается через плагин `expo-splash-screen` в `app.json`; протестировать её можно только в preview/production сборке, не в Expo Go.
+
+### Пример настройки статус-бара
+
+```tsx
+import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+
+export default function RootLayout() {
+  return (
+    <>
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
+      <StatusBar style="light" />
+    </>
+  );
+}
+```
+
+Пример конфигурации splash screen в `app.json`:
+
+```json
+{
+  "plugins": [
+    ["expo-splash-screen", { "image": "./assets/images/splash-icon.png" }]
+  ]
+}
+```
+
+---
+
+## 11. Learning resources (Дополнительные материалы)
+
+Итоговая глава туториала собирает ссылки для дальнейшего изучения:
+
+- **Инструменты разработки Expo** — обзор инструментов CLI и Dev Tools.
+- **Development builds** — сборки для полного контроля над процессом (в отличие от Expo Go).
+- **Expo Router** — подробная документация по файловой маршрутизации.
+- **Иконка и заставка приложения**, а также справочник `app.json`.
+- **Публикация и дистрибуция** приложения в App Store / Google Play.
+- **Отладка (Debugging)** — инструменты поиска и исправления ошибок.
+
+Рекомендованные темы для углублённого изучения:
+- **React** — официальная документация (Quick Start, Hooks).
+- **React Native** — базовые компоненты (`View`, `Text`), платформенный код, списки, **Flexbox** для вёрстки.
+- **Жесты и анимации** — документация React Native Gesture Handler и Reanimated.
+
+Также предлагается вступить в сообщество Expo в Discord для вопросов и общения с другими разработчиками.
+
+---
 
 # Конспект JavaScript
 
